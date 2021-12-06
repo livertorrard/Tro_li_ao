@@ -2,7 +2,7 @@ import os
 import playsound
 import speech_recognition as sr
 import time 
-import sys
+# import sys
 import ctypes
 import wikipedia
 import datetime
@@ -14,11 +14,11 @@ import requests
 import urllib
 import urllib.request as urllib2
 import random
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from webdriver_manager.chrome import ChromeDriverManager
+# from selenium import webdriver
+# from selenium.webdriver.common.keys import Keys
+# from webdriver_manager.chrome import ChromeDriverManager
 from time import process_time_ns, strftime
-from gtts import gTTS
+# from gtts import gTTS
 from youtube_search import YoutubeSearch
 import pyttsx3
 import subprocess
@@ -29,6 +29,8 @@ import tkinter as tk
 from unidecode import unidecode
 from threading import Thread
 import threading
+from ProcessingInput import response, response_tag
+#from GUI import Record
 mydb = mysql.connector.connect(
   host="localhost",
   user="root",
@@ -66,21 +68,21 @@ def speak(Gui,text):
     engine.setProperty('voice', voices[1].id)
     engine.say(text)
     engine.runAndWait()
-    
+    # engine.stop()
     # tts =gTTS(text=text,lang=language,slow=False)
     # n = str(random.randint(1,100000))+"bot.mp3"
     # tts.save(n)
     # playsound.playsound(n,True)
     # time.sleep(2)
     # os.remove(n)
-def mail(user,passmail,user_sent,content):
+def mail(Gui,user,passmail,user_sent,content):
     mail = smtplib.SMTP("smtp.gmail.com" ,587)
     mail.ehlo()
     mail.starttls()
     mail.login(user,passmail)
     mail.sendmail(user,user_sent,str(content).encode("utf-8"))
     mail.close()
-    speak("Email đã được gửi đi")   
+    speak(Gui,"Email đã được gửi đi")   
 
 def get_audio(Gui):
     
@@ -102,9 +104,13 @@ def get_audio(Gui):
 def stop(Gui):
     speak(Gui,"Hẹn gặp lại bạn sau nhé ! Tạm biệt ...")  
 def get_textout(Gui):
-    text = get_audio(Gui)
-    if text:
-        return text.lower()
+    texT = get_audio(Gui)
+    if texT:
+       text = response_tag(texT)
+       if text:
+          return [text.lower(),response(texT)]
+       if text==None:
+          return texT.lower()    
     else :
         speak(Gui,'Vui lòng nói lại tôi không thể nghe')        
 def get_text(Gui):
@@ -117,8 +123,8 @@ def get_text(Gui):
     time.sleep(2)
     stop()
     return 0   
-def get_mailadress():
-    voice = get_text()
+def get_mailadress(Gui):
+    voice = get_text(Gui)
     uni = unicode(voice)
     subuser = subspace(uni)
     mail_adress =subuser+"@gmail.com"     
@@ -139,9 +145,9 @@ def hello(Gui):
         speak(Gui,"Hệ lỗi đang lỗi ! Vui lòng kiểm tra lại ")  
 def get_time(Gui,text) :
     now = datetime.datetime.now()
-    if 'giờ' in text :
+    if 'hour' in text :
         speak(Gui,f'Bây giờ là {now.hour} giờ {now.minute} phút {now.second} giây')
-    elif 'ngày' in text :
+    elif 'day' in text :
         speak(Gui,f'Hôm nay là ngày {now.day} tháng {now.month} năm {now.year}')
     else :
         speak(Gui,"Xin lỗi , tôi vẫn chưa hiểu ý của bạn")          
@@ -181,39 +187,40 @@ def search_google2(Gui):
     url = f"https://www.google.com/search?q={inform}"
     webbrowser.open(url)
     speak(Gui,"Thông tin đã được tìm kiếm trên Google")
-def send_email():
-    speak("Tôi đang thực hiện kiểm tra dữ liệu ?")
+def send_email(Gui):
+    speak(Gui,"Tôi đang thực hiện kiểm tra dữ liệu ?")
     mycursor = mydb.cursor()
     mycursor.execute("SELECT user, pass FROM user_gmail")
     myresult = mycursor.fetchall()
     if len(myresult)>0 :
-        speak(f"Vui lòng chọn các tài khoản sau")  
+        speak(Gui,f"Vui lòng chọn các tài khoản sau")  
         for user in myresult:
-           speak(user[0])
+           
+          
+           speak(Gui,user[0])
         dieukien = True
         while dieukien : 
           
-          mail_adress = get_mailadress()  
+          mail_adress = get_mailadress(Gui)  
           print(mail_adress)
           for user in myresult:
             if mail_adress == user[0]:
-               speak("Vui lòng cho biết địa chỉ cần gửi")
-               mail_sent = get_mailadress()
+               speak(Gui,"Vui lòng cho biết địa chỉ cần gửi")
+               mail_sent = get_mailadress(Gui)
                print(mail_sent)
-               speak("Vui lòng cho biết nội dung cần gửi")
-               content = get_text()
-               mail(mail_adress,"01665574505a",mail_sent,content)
+               speak(Gui,"Vui lòng cho biết nội dung cần gửi")
+               content = get_text(Gui)
+               mail(Gui,mail_adress,"01665574505a",mail_sent,content)
                dieukien = False
                break
           if dieukien:
-              speak("Vui lòng chọn lại tên người dùng cho chính xác")    
+              speak(Gui,"Vui lòng chọn lại tên người dùng cho chính xác")    
     else :
-        speak("Chưa có dữ liệu vui lòng cung cấp tài khoản và mật khẩu") 
+        speak(Gui,"Chưa có dữ liệu vui lòng cung cấp tài khoản và mật khẩu") 
 def current_weather(Gui):
     speak(Gui," Bạn muốn xem thời tiết ở đâu nhỉ ?")
-    time.sleep(3)
-    ow_url = "https://api.openweathermap.org/data/2.5/weather?"
     city = get_text(Gui)
+    ow_url = "https://api.openweathermap.org/data/2.5/weather?"
     if not city:
         pass
     api_key = "8f5bac908d0f7a4fee99b45ca5e820d4"    
@@ -226,16 +233,16 @@ def current_weather(Gui):
        weather_city = data['name']
        main = data['main']
        weather_temperature = round(main['temp'])
-       weather_tempmax = round(main['temp_max'])
-       weather_tempmin = round(main['temp_min']) 
-       content = f"Hôm nay {weather_city} có {weather_descrip}, nhiệt độ là {weather_temperature} độ C , nhiệt độ cao nhất là {weather_tempmax} độ C , nhiệt độ thấp nhất là {weather_tempmin} độ C"
+       weather_humidity = round(main['humidity'])
+       wind = data['wind']
+       wind_speed = wind['speed']
+       content = f"Hôm nay {weather_city} có {weather_descrip}, nhiệt độ là {weather_temperature} độ C , độ ẩm là {weather_humidity} phần trăm , tốc độ gió là {wind_speed} mét trên giây"
        speak(Gui,content)
     else:
        speak(Gui,"Dữ liệu chưa được tìm thấy vui lòng kiểm tra lại địa chỉ cần tìm !")    
 def search_youtobe1(Gui):
     speak(Gui,"Vui lòng cho biết nội dung bạn muốn tìm kiếm")
     search = get_text(Gui)
-    search = "Sơn tùng MTP"
     url = f"https://www.youtube.com/search?q={search}"
     webbrowser.get().open(url)
     speak(Gui,"Đây là nội dung tôi đã tìm kiếm được")
@@ -289,50 +296,62 @@ def listen_label1(Gui):
 def listen_label2(Gui):
     listen_label = Label(Gui,text="Trợ lí ảo ngừng hoạt động ! ",border=0,bg='white',font=("Courier", 13 ,"bold"))
     listen_label.place(x=150,y=445)                
-def main_brain(Gui):
+def main_brain(Gui,Record):
+        Record['state']=DISABLED
         speak(Gui,f'Tôi có thể giúp gì được cho bạn ?')
         while True:
+            
             text = get_textout(Gui)
             if not text:
                 listen_label2(Gui)
+                Record['state']= NORMAL
                 break
-            elif 'chào' in text:
+            elif 'greeting' in text[0]:
                 hello(Gui)
                 listen_label2(Gui)
+                Record['state']= NORMAL
                 break
-            elif ('giờ' in text) or ('ngày' in text):
-                get_time(Gui,text) 
+            elif ('hour' in text[0]) or ('day' in text[0]):
+                get_time(Gui,text[0]) 
                 listen_label2(Gui)
+                Record['state']= NORMAL
                 break
             elif 'mở' in text:
                 if '.' in text:
                     open_website(Gui,text)
                     listen_label2(Gui)
+                    Record['state']= NORMAL
                     break
                 else:    
                     open_application(Gui,text)  
-                    listen_label2(Gui)    
+                    listen_label2(Gui)  
+                    Record['state']= NORMAL  
                     break 
-            elif 'cảm ơn' in text:
-                speak(Gui,"Không có gì nè ! Được phục vụ bạn là niềm vui của tôi")  
-                listen_label2(Gui)     
+            elif 'thank' in text[0]:
+                speak(Gui,text[1])  
+                listen_label2(Gui)   
+                Record['state']= NORMAL  
                 break
-            elif 'mail' in text:
-                send_email() 
-                listen_label2(Gui)  
+            elif 'mail' in text[0]:
+                send_email(Gui) 
+                listen_label2(Gui) 
+                Record['state']= NORMAL 
                 break 
             elif 'thời tiết' in text:
                 current_weather(Gui)  
                 listen_label2(Gui) 
+                Record['state']= NORMAL
                 break  
             elif 'tìm kiếm' in text :
                 if "tìm kiếm" == text:
                     search_google2(Gui)  
-                    listen_label2(Gui)  
+                    listen_label2(Gui) 
+                    Record['state']= NORMAL 
                     break
                 else:
                     search_google(Gui,text)
                     listen_label2(Gui)
+                    Record['state']= NORMAL
                     break
             elif 'youtube' in text:
                 speak(Gui,"Bạn có muốn tìm kiếm nội dung nâng cao không ?")
@@ -340,48 +359,61 @@ def main_brain(Gui):
                 if 'có' in yesOrNo:
                     search_youtobe2(Gui)
                     listen_label2(Gui)
+                    Record['state']= NORMAL
                     break
                 else :
                     search_youtobe1(Gui) 
                     listen_label2(Gui) 
+                    Record['state']= NORMAL 
                     break
             elif 'hình nền' in text:
                 change_wallpaper(Gui)
                 listen_label2(Gui) 
+                Record['state']= NORMAL 
                 break
             elif 'hát' in text:
                 sing_song(Gui)
                 listen_label2(Gui)
+                Record['state']= NORMAL  
                 break
             elif 'wiki' in text:
                 search_wiki(Gui) 
                 listen_label2(Gui) 
+                Record['state']= NORMAL  
                 break                
-            elif ('tạm biệt' in text) or ('hẹn gặp lại' in text):
-                stop()
+            elif 'goodbye' in text:
+                speak(Gui,text[1])  
                 listen_label2(Gui)
+                Record['state']= NORMAL  
                 break
-            elif 'yêu tôi không' in text:
-                speak(Gui,"Xin lỗi tôi không thể , nhưng tôi sẽ ở đây với bạn !")
+            elif 'sad' in text:
+                speak(Gui,text[1])
+
+                listen_label2(Gui)
+                Record['state']= NORMAL  
                 break
-            elif 'buồn' in text:
-                speak(Gui,"Bạn có muốn tâm sự cùng tôi không ?")
+            elif 'love' in text:
+                speak(Gui,text[1])
+                listen_label2(Gui)
+                Record['state']= NORMAL  
                 break
-            elif 'thả thính' in text:
-                speak(Gui,"Tôi nghĩ mình nên mua túi ba gang, vì ở bên bạn thời gian là vàng là bạc")
+            elif 'story' in text:
+                speak(Gui,text[1])
+                listen_label2(Gui)
+                Record['state']= NORMAL  
                 break
-            elif 'nói gì vui' in text:
-                speak(Gui,"Cuộc sống vốn ngắn ngủi, vì vậy bạn hãy luôn cười khi còn đủ răng.")
             else:
                 speak(Gui,"Chức năng chưa có . Bạn vui lòng chọn lại chức năng đã có trong menu.")
                 listen_label2(Gui)
+                Record['state']= NORMAL  
                 break
-def thread_mutiii(Gui):
+
+def thread_mutiii(Gui,Record):
 	t1 = threading.Thread(target=listen_label1, args=(Gui,))
-	t2 = threading.Thread(target=main_brain,args=(Gui,))
+	t2 = threading.Thread(target=main_brain,args=(Gui,Record,))
 	t1.start()
 	t2.start()
     
     
-         
+   
                   
